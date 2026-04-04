@@ -27,5 +27,9 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Student>()
             .HasIndex(s => s.Email)
             .IsUnique();
+
+        modelBuilder.Entity<Student>()
+            .Property(s => s.FullName)
+            .IsConcurrencyToken();
     }
 }
