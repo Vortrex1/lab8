@@ -1,4 +1,7 @@
-﻿using Lab4.Data;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Lab4.Data;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Shouldly;
@@ -10,7 +13,7 @@ public class SqliteRelationalTests
 {
     public readonly AppDbContext Context;
     public readonly SqliteConnection Connection;
-    
+
     public SqliteRelationalTests()
     {
         Connection = new SqliteConnection("DataSource=:memory:");
@@ -21,27 +24,27 @@ public class SqliteRelationalTests
             .Options;
 
         Context = new AppDbContext(options);
-        Context.Database.EnsureCreated(); // applies the schema
+        Context.Database.EnsureCreated();
     }
 
     [Fact]
     public async Task ForeignKey_EnrollingInNonExistingCourse_ThrowsAsync()
     {
-        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+
         using (Context)
         using (Connection)
         {
             var enrollment = new Enrollment
             {
-                StudentId = 999, // does not exist
-                CourseId = 999,  // does not exist
+                StudentId = 999,
+                CourseId = 999,
                 Grade = 85
             };
 
-            // Act & Assert
             Context.Enrollments.Add(enrollment);
             var exception = await Should.ThrowAsync<DbUpdateException>(
-                () => Context.SaveChangesAsync());
+                () => Context.SaveChangesAsync(ct));
             exception.ShouldNotBeNull();
         }
     }
@@ -49,7 +52,8 @@ public class SqliteRelationalTests
     [Fact]
     public async Task UniqueConstraint_DuplicateEmail_ThrowsAsync()
     {
-        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+
         using (Connection)
         using (Context)
         {
@@ -60,24 +64,24 @@ public class SqliteRelationalTests
             };
             var student2 = new Student
             {
-                FullName = "Bob", Email = "dup@test.com", // same email
+                FullName = "Bob", Email = "dup@test.com",
                 EnrollmentDate = DateTime.UtcNow
             };
 
             Context.Students.Add(student1);
-            await Context.SaveChangesAsync();
+            await Context.SaveChangesAsync(ct);
             Context.Students.Add(student2);
 
-            // Act & Assert
             await Should.ThrowAsync<DbUpdateException>(
-                () => Context.SaveChangesAsync());
+                () => Context.SaveChangesAsync(ct));
         }
     }
 
     [Fact]
     public async Task CascadeDelete_DeletingStudent_RemovesEnrollmentsAsync()
     {
-        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+
         using (Connection)
         using (Context)
         {
@@ -92,14 +96,12 @@ public class SqliteRelationalTests
                 }
             };
             Context.Students.Add(student);
-            await Context.SaveChangesAsync();
+            await Context.SaveChangesAsync(ct);
 
-            // Act
             Context.Students.Remove(student);
-            await Context.SaveChangesAsync();
+            await Context.SaveChangesAsync(ct);
 
-            // Assert
-            var enrollments = await Context.Enrollments.ToListAsync();
+            var enrollments = await Context.Enrollments.ToListAsync(ct);
             enrollments.ShouldBeEmpty();
         }
     }
@@ -107,7 +109,8 @@ public class SqliteRelationalTests
     [Fact]
     public async Task OptimisticConcurrency_HandlingConcurrentUpdates_ThrowsConcurrencyExceptionAsync()
     {
-        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+
         using (Connection)
         using (Context)
         {
@@ -119,29 +122,25 @@ public class SqliteRelationalTests
             };
 
             Context.Students.Add(student);
-            await Context.SaveChangesAsync();
+            await Context.SaveChangesAsync(ct);
 
-            // Create a second context using the SAME connection
             var options2 = new DbContextOptionsBuilder<AppDbContext>()
                 .UseSqlite(Connection)
                 .Options;
             using var context2 = new AppDbContext(options2);
 
-            var studentInContext1 = await Context.Students.FindAsync(student.Id);
-            var studentInContext2 = await context2.Students.FindAsync(student.Id);
+            var studentInContext1 = await Context.Students.FindAsync([student.Id], ct);
+            var studentInContext2 = await context2.Students.FindAsync([student.Id], ct);
 
-            // Act
-            // First user updates the name
-            studentInContext1.FullName = "Updated by User 1";
-            await Context.SaveChangesAsync();
+            // Перший користувач оновлює
+            studentInContext1!.FullName = "Updated by User 1";
+            await Context.SaveChangesAsync(ct);
 
-            // Second user tries to update the name concurrently
-            studentInContext2.FullName = "Updated by User 2";
-            
-            // Assert
+            // Другий користувач намагається оновити конкурентно
+            studentInContext2!.FullName = "Updated by User 2";
+
             await Should.ThrowAsync<DbUpdateConcurrencyException>(
-                () => context2.SaveChangesAsync());
+                () => context2.SaveChangesAsync(ct));
         }
     }
 }
-
