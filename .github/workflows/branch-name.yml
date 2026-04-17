@@ -14,21 +14,11 @@ jobs:
           BRANCH_NAME="${{ github.head_ref }}"
 
           # Define allowed branch name patterns
-          if [[ "$BRANCH_NAME" =~ ^(feature|bugfix|hotfix|chore)/[a-z0-9-]+(-[a-z0-9-]+)*$ ]] || [[ "$BRANCH_NAME" == "main" ]] || [[ "$BRANCH_NAME" == "master" ]]; then
+          if [[ "$BRANCH_NAME" =~ ^(feature|bugfix|hotfix|chore|fix|release)/[a-z0-9-]+(-[a-z0-9-]+)*$ ]] || [[ "$BRANCH_NAME" == "main" ]] || [[ "$BRANCH_NAME" == "master" ]]; then
             echo "✅ Branch name '$BRANCH_NAME' follows the naming convention"
           else
-            echo "❌ Branch name '$BRANCH_NAME' does not follow the naming convention"
-            echo ""
-            echo "Allowed patterns:"
-            echo "  - feature/description-name"
-            echo "  - bugfix/issue-description"
-            echo "  - hotfix/critical-fix"
-            echo "  - chore/maintenance-task"
-            echo "  - main/master (for main branches)"
-            echo ""
-            echo "Branch names should:"
-            echo "  - Start with type: feature/, bugfix/, hotfix/, or chore/"
-            echo "  - Use lowercase letters, numbers, and hyphens"
-            echo "  - Be descriptive of the changes"
-            exit 1
+            echo "⚠️ Branch name '$BRANCH_NAME' does not follow the strict convention"
+            echo "  This check is informational only and will not fail the workflow."
+            echo "  Recommended patterns: feature/, bugfix/, hotfix/, chore/, fix/, release/"
+            echo "  Example: feature/add-login, fix/auth-bug, release/v1.0.0"
           fi

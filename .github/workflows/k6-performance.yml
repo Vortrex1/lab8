@@ -40,17 +40,17 @@ jobs:
         uses: grafana/setup-k6-action@v1
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore Lab4.sln
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build Lab4.sln --configuration Release --no-restore
 
       - name: Start API
         env:
           ASPNETCORE_URLS: http://localhost:5000
           ASPNETCORE_ENVIRONMENT: Development
           ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=test_db;Username=postgres;Password=postgres_password"
-        run: dotnet run --project Lab4.Data --configuration Release --no-build &
+        run: dotnet run --project Lab4.Data/Lab4.Data.csproj --configuration Release --no-build &
         working-directory: .
 
       - name: Wait for API readiness
