@@ -23,16 +23,16 @@ jobs:
         dotnet-version: '10.0.x'
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore Lab4.sln
 
     - name: Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build Lab4.sln --configuration Release --no-restore
 
     - name: Run containerized tests
       run: |
         # Run tests that use Testcontainers (PostgreSQL integration tests)
         # Note: Testcontainers will automatically pull and run PostgreSQL containers
-        dotnet test Lab4.Tests --configuration Release --no-build --filter "PostgreSqlIntegrationTests" --verbosity normal
+        dotnet test Lab4.Tests/Lab4.Tests.csproj --configuration Release --no-build --filter "PostgreSqlIntegrationTests" --verbosity normal
       env:
         # Environment variables for tests if needed
         ASPNETCORE_ENVIRONMENT: Testing

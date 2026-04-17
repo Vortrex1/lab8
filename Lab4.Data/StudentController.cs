@@ -58,4 +58,11 @@ public class StudentController : ControllerBase
         }
         return NotFound();
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAllAsync()
+    {
+        var students = await _repository.GetAllAsync();
+        return Ok(students);
+    }
 }
